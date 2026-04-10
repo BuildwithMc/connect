@@ -1,24 +1,14 @@
 # Connect DePIN: P2P Energy Settlement on Stellar
 
-**Connect DePIN** is a decentralized energy sharing protocol that allows solar owners to sell excess power to their neighbors. By linking **Smart Meter Hardware** to **Soroban Smart Contracts**, we ensure that every watt consumed is automatically verified and settled on the Stellar blockchain.
+**Connect** is a decentralized energy-sharing protocol that enables peer-to-peer (P2P) energy trading using **Stellar/Soroban** smart contracts and hardware-integrated smart meters. We turn idle solar capacity into a liquid asset.
 
------
+## 🚀 Overview
 
-## ⚡ The Problem
+In West Africa, energy poverty is often a distribution and trust problem. **Connect** solves this by:
 
-In West Africa, energy poverty persists despite an abundance of private solar installations. Owners of these systems often have 40-60% idle capacity, while neighbors suffer from grid outages. Current P2P sharing is hindered by:
-
-  * **Trust Deficits:** No transparent way to prove exactly how much energy was used.
-  * **Payment Friction:** High bank fees make micro-payments for small energy amounts unviable.
-  * **Manual Billing:** No automated system to link real-time consumption to financial settlement.
-
-## 🚀 The Solution
-
-Connect DePIN creates a "Trustless Energy Market" using:
-
-1.  **IoT Smart Meters:** Custom hardware that monitors energy flow ($kWh$).
-2.  **The Energy Oracle:** A bridge that pushes meter data to the blockchain.
-3.  **Soroban Smart Contracts:** Logic that handles automated, real-time escrow and payments in stablecoins (USDC/NGNC).
+1.  **Verifying Consumption:** Putting hardware meter data "on-chain" via an Oracle.
+2.  **Automating Payments:** Using Soroban smart contracts to settle micro-payments in real-time.
+3.  **Inclusive Access:** Providing a USSD interface for users without smartphones or consistent data.
 
 -----
 
@@ -26,45 +16,80 @@ Connect DePIN creates a "Trustless Energy Market" using:
 
 ### 1\. Hardware Layer (The Meter)
 
-  * **PCB Design:** Custom board utilizing the **ESP32** for connectivity and the **PZEM-004T** for high-precision energy monitoring.
-  * **Firmware:** Written in C++/Arduino, handling the calculation of Active Power, Voltage, and Cumulative $kWh$.
-  * **Data Transmission:** Uses MQTT/HTTPS to push heartbeats to the Oracle Bridge.
+  * **PCB & Firmware:** Custom-designed boards using ESP32/Arduino for energy monitoring.
+  * **The Energy Oracle:** A bridge that signs and pushes real-time heartbeats (kWh) to the Stellar network.
 
-### 2\. Blockchain Layer (Stellar/Soroban)
+### 2\. Smart Contract Layer (Soroban)
 
-  * **The Settlement Contract:** A Soroban smart contract that:
-      * Holds buyer deposits in escrow.
-      * Releases payment to the provider based on verified $kWh$ inputs.
-      * Implements a "Rate Per Watt" logic defined by the provider.
-  * **On-Chain Events:** Every "heartbeat" from the meter is recorded as a contract event, providing a transparent audit trail.
+  * **Escrow Contract:** Holds buyer funds (USDC/NGNC).
+  * **Settlement Logic:** Releases payment to the seller's wallet based on validated energy consumption events.
 
-### 3\. Gateway Layer (The Oracle)
+### 3\. Interface Layer (USSD & Web)
 
-  * A Python-based middleware that validates hardware signatures and pushes the data to the Stellar Network. It ensures that only authorized meters can trigger payment releases.
+  * **USSD Gateway:** A bridge for feature phone users to interact with the Stellar ledger.
 
 -----
 
-## 📂 Repository Structure
+## 📟 USSD Flow & Balance Management
 
-```text
+We prioritize accessibility. Users can manage their energy wallet and trade power via a simple USSD string (e.g., `*384*100#`).
+
+### User Commands:
+
+| Command | Action | Description |
+| :--- | :--- | :--- |
+| `*1` | **Check Balance** | View current USDC/NGNC balance in the Stellar wallet. |
+| `*2` | **Authorize Energy** | Set a maximum spend limit for the next 24 hours. |
+| `*3` | **Top-up Wallet** | Get instructions to deposit NGN via local Stellar anchors. |
+| `*4` | **Earnings (Seller)** | View daily revenue generated from energy sales. |
+
+-----
+
+## 📂 Project Structure
+
+```bash
 ├── hardware/
-│   ├── pcb-design/      # Schematics and Gerber files
-│   └── firmware/        # ESP32 source code for energy monitoring
+│   ├── pcb-design/       # Schematics and Gerber files
+│   └── firmware/         # C++/Arduino code for meter logic
 ├── contracts/
-│   └── settlement/     # Soroban (Rust) smart contract source
+│   ├── src/              # Soroban Rust contracts (Settlement & Escrow)
+│   └── tests/            # Contract testing suite
 ├── oracle/
-│   └── bridge.py        # Hardware-to-Chain data relay script
-└── docs/                # Architecture diagrams and API specs
+│   └── heartbeat.py      # Script to push hardware data to Stellar
+└── interface/
+    ├── ussd-bridge/      # Logic for USSD-to-Stellar transactions
+    └── web-dashboard/    # Frontend for real-time monitoring
 ```
 
 -----
 
-## 📅 30-Day Roadmap (Stellar Residency)
+## ⚙️ Setup & Installation
 
-  - [ ] **Week 1:** Finalize PCB routing and order first prototype batch.
-  - [ ] **Week 2:** Deploy "Settlement Contract" to Stellar Testnet (Futurenet).
-  - [ ] **Week 3:** Integrate Firmware with the Soroban Oracle script.
-  - [ ] **Week 4:** End-to-end "Hardware-to-Payment" pilot test with a 100W load.
+### Prerequisites
+
+  * [Rust & Soroban CLI](https://soroban.stellar.org/docs/getting-started/setup)
+  * [Stellar SDK](https://www.google.com/search?q=https://github.com/stellar/py-stellar-base)
+  * [Arduino IDE](https://www.arduino.cc/en/software) (for hardware firmware)
+
+### Deploying Contracts
+
+1.  Build the contract:
+    ```bash
+    soroban contract build
+    ```
+2.  Deploy to Futurenet/Testnet:
+    ```bash
+    soroban contract deploy --wasm target/wasm32-unknown-unknown/release/connect_settlement.wasm --source-account <YOUR_SECRET> --rpc-url https://soroban-testnet.stellar.org:443 --network-passphrase 'Test SDF Network ; September 2015'
+    ```
+
+-----
+
+## 🎯 Roadmap (First 30 Days)
+
+  - [ ] **Week 1:** Finalize PCB schematics and order initial prototypes.
+  - [ ] **Week 2:** Deploy the base Settlement Smart Contract on Soroban Testnet.
+  - [ ] **Week 3:** Integrate the Hardware-to-Chain Oracle (pushing simulated data).
+  - [ ] **Week 4:** Launch USSD simulation for balance management and authorization.
 
 -----
 
