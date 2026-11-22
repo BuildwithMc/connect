@@ -1,9 +1,0 @@
-# cPanel / Apache: send admin routes to the single-page app.
-RewriteEngine On
-RewriteBase /admin/
-RewriteRule ^index\.html$ - [L]
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /admin/index.html [L]
-Header set X-Robots-Tag "noindex"
-Header set X-Frame-Options "DENY"
