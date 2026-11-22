@@ -12,13 +12,9 @@
     var kobo = k % 100 !== 0;
     return 'N' + (k / 100).toLocaleString('en-NG', { minimumFractionDigits: kobo ? 2 : 0, maximumFractionDigits: 2 });
   };
-  var PLANS = [
-    { name: '4 hours', price: 40000, mins: 240 },
-    { name: '8 hours', price: 75000, mins: 480 },
-    { name: 'Full day', price: 120000, mins: null }
-  ];
-
-  var state = { mode: 'dial', typed: '', reply: '', screen: null, balance: 149750, powerOn: true, endsAt: new Date(Date.now() + 320 * 60000), plan: null };
+  var AMOUNTS = [100000, 200000, 500000];
+  var RATE = 25000; // kobo per kWh in the demo
+  var state = { mode: 'dial', typed: '', reply: '', screen: null, balance: 600000, powerOn: true, plan: { budget: 200000, left: 134000 }, pick: null };
 
   function at(h, m) { var d = new Date(); d.setHours(h, m, 0, 0); return d; }
   function hhmm(d) {
@@ -31,46 +27,45 @@
   // Each screen: text, and what each reply leads to.
   var screens = {
     menu: function () {
-      return { text: 'Connect Power\nWelcome back, Ada\n\n1. Buy power\n2. Check balance\n3. My meter\n4. Fund wallet\n0. Help', on: { '1': 'buy', '2': 'balance', '3': 'meter', '4': 'fund', '0': 'help' } };
+      return { text: 'Connect Power\nWelcome back, Ada\n\n1. Create a plan\n2. Check balance\n3. My meter\n4. Fund wallet\n0. Help', on: { '1': 'create', '2': 'balance', '3': 'meter', '4': 'fund', '0': 'help' } };
     },
-    buy: function () {
-      var t = 'Buy power for Stall 14B\n\n';
-      PLANS.forEach(function (p, i) { t += (i + 1) + '. ' + p.name + ' - ' + naira(p.price) + '\n'; });
-      return { text: t + '0. Back', on: { '1': pick(0), '2': pick(1), '3': pick(2), '0': 'menu' } };
+    create: function () {
+      if (state.plan) return { text: 'Flat 3B already has a plan:\n' + naira(state.plan.left) + ' left.\n\n1. Stop it and start a new one\n0. Back', on: { '1': 'stopThenCreate', '0': 'menu' } };
+      var t = 'How much can Flat 3B\nspend from your wallet?\n\n';
+      AMOUNTS.forEach(function (a, i) { t += (i + 1) + '. ' + naira(a) + '\n'; });
+      return { text: t + '4. Whole balance (' + naira(state.balance) + ')\n0. Back', on: { '1': pick(0), '2': pick(1), '3': pick(2), '4': pick(-1), '0': 'menu' } };
     },
+    stopThenCreate: function () { state.plan = null; return screens.create(); },
     confirm: function () {
-      var p = state.plan;
-      if (state.balance < p.price) {
-        return { text: 'Not enough money.\n' + p.name + ' costs ' + naira(p.price) + '.\nBalance: ' + naira(state.balance) + '\n\n4. Fund wallet\n0. Back', on: { '4': 'fund', '0': 'buy' } };
+      var amount = state.pick === -1 ? state.balance : AMOUNTS[state.pick];
+      if (amount > state.balance || state.balance <= 0) {
+        return { text: 'Not enough money.\nPlan: ' + naira(amount) + '\nWallet: ' + naira(state.balance) + '\n\n4. Fund wallet\n0. Back', on: { '4': 'fund', '0': 'create' } };
       }
-      return { text: p.name + ' for ' + naira(p.price) + '\nBalance: ' + naira(state.balance) + '\n\nEnter your 4-digit PIN to pay:', pin: true };
+      return { text: (state.pick === -1 ? 'Plan: whole balance' : 'Plan: ' + naira(amount)) + '\nPrice: ' + naira(RATE) + ' per kWh\n\nEnter your 4-digit PIN\nto start the plan:', pin: true };
     },
     paid: function () {
-      var p = state.plan;
-      state.balance -= p.price;
-      var from = state.powerOn && state.endsAt > new Date() ? state.endsAt : new Date();
-      state.endsAt = p.mins ? new Date(from.getTime() + p.mins * 60000) : at(23, 59);
+      var amount = state.pick === -1 ? state.balance : AMOUNTS[state.pick];
+      state.plan = { budget: amount, left: amount };
       state.powerOn = true;
-      return { text: 'Payment received!\n\nStall 14B is ON\nuntil ' + hhmm(state.endsAt) + '.\nNew balance: ' + naira(state.balance) + '\n\nToken: ' + token(), end: true };
+      return { text: 'Plan started!\n\nFlat 3B is ON.\nYou pay only for energy\nused, up to ' + naira(amount) + '.\nAbout ' + Math.max(1, Math.round(amount / 96000)) + ' day(s) at your\nusual use.', end: true };
     },
     balance: function () {
-      var hours = Math.floor(state.balance / 9400);
-      return { text: 'Wallet: ' + naira(state.balance) + '\nAbout ' + hours + ' h of light\nPower: ' + (state.powerOn ? 'ON until ' + hhmm(state.endsAt) : 'OFF') + '\n\n0. Back', on: { '0': 'menu' } };
+      return { text: 'Wallet: ' + naira(state.balance) + '\n' + (state.plan ? 'Plan for Flat 3B:\n' + naira(state.plan.left) + ' left' : 'No plan running') + '\nPower: ' + (state.powerOn && state.plan ? 'ON' : 'OFF') + '\n\n0. Back', on: { '0': 'menu' } };
     },
     meter: function () {
+      if (!state.plan) return { text: 'Flat 3B: OFF\nNo plan running.\n\n1. Create a plan\n0. Back', on: { '1': 'create', '0': 'menu' } };
       return state.powerOn
-        ? { text: 'Stall 14B: ON\nUsing 1.8 kW now\nPlan ends ' + hhmm(state.endsAt) + '\n\n1. Turn off for now\n0. Back', on: { '1': 'off', '0': 'menu' } }
-        : { text: 'Stall 14B: OFF\nYour paid time is kept.\n\n1. Turn on\n0. Back', on: { '1': 'on', '0': 'menu' } };
+        ? { text: 'Flat 3B: ON\nUsing 1.8 kW now\nPlan: ' + naira(state.plan.left) + ' left\n\n1. Turn off for now\n0. Back', on: { '1': 'off', '0': 'menu' } }
+        : { text: 'Flat 3B: OFF\nYour plan is kept.\n\n1. Turn on\n0. Back', on: { '1': 'on', '0': 'menu' } };
     },
-    off: function () { state.powerOn = false; return { text: 'Stall 14B is now OFF.\nYour paid time is kept\nfor when you turn it back on.', end: true }; },
-    on: function () { state.powerOn = true; return { text: 'Stall 14B is ON again\nuntil ' + hhmm(state.endsAt) + '.', end: true }; },
+    off: function () { state.powerOn = false; return { text: 'Flat 3B is now OFF.\nNothing is charged while\nit is off.', end: true }; },
+    on: function () { state.powerOn = true; return { text: 'Flat 3B is ON again.\nPlan: ' + naira(state.plan.left) + ' left.', end: true }; },
     fund: function () { return { text: 'Fund by bank transfer\nfrom any bank app:\n\nWema Bank\n9932417805\nConnect Power/Ada Obi\n\nIt lands in about a minute.', end: true }; },
-    help: function () { return { text: 'Need help?\nCall or WhatsApp\n0802 601 6804\n\nVisit our desk at\nOld Artisan Market.', end: true }; },
+    help: function () { return { text: 'Need help?\nCall or WhatsApp\n0802 601 6804\n\nor email\ninfo@buildhq.xyz', end: true }; },
     wrong: function () { return { text: 'Unknown option.\n\n0. Back to menu', on: { '0': 'menu' } }; }
   };
 
-  function pick(i) { return function () { state.plan = PLANS[i]; return 'confirm'; }; }
-  function token() { var s = ''; for (var i = 0; i < 8; i++) s += Math.floor(Math.random() * 10); return s.slice(0, 4) + '-' + s.slice(4); }
+  function pick(i) { return function () { state.pick = i; return 'confirm'; }; }
 
   function render() {
     var s = state;
