@@ -1,0 +1,5 @@
+{
+  "cleanUrls": true,
+  "rewrites": [{ "source": "/admin/:path*", "destination": "/admin/index.html" }],
+  "headers": [{ "source": "/admin/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }, { "key": "X-Frame-Options", "value": "DENY" }] }]
+}
