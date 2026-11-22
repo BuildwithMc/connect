@@ -101,3 +101,14 @@ We prioritize accessibility. Users can manage their energy wallet and trade powe
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
+
+-----
+
+## 🌐 Website (connect.buildhq.xyz)
+
+The landing page is a static site at the root of this repo, with no build step: `index.html`, `assets/styles.css`, `assets/app.js`, the brand files in `assets/brand/` and the favicons.
+
+- **Preview locally:** `python -m http.server 5180`, then open http://127.0.0.1:5180
+- **Hosting: Vercel.** No build step: Vercel serves the folder as it is. `vercel.json` makes `/admin` a single-page app, sets security headers (a strict Content-Security-Policy on the admin) and caches admin assets for a year. Pushing to `main` deploys to connect.buildhq.xyz; other branches get preview URLs. The admin is built from the connectapp repo with `npm run publish:site` in `apps/admin`.
+- **USSD demo:** the phone on the page runs a scripted copy of the `*384*04227#` flow in the browser (`assets/app.js`). No money moves and no meter switches. The live version runs on Africa's Talking.
+- **Waitlist form:** until the API endpoint is live, it opens an email to info@buildhq.xyz. Set `WAITLIST_ENDPOINT` in `assets/app.js` to send it to the API instead.

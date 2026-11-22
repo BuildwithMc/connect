@@ -1,0 +1,10 @@
+/* Policy pages: readable long-form text on the site's light background. */
+.legal { max-width: 780px; padding-top: 56px; padding-bottom: 80px; }
+.legal h1 { font-size: clamp(32px, 5vw, 48px); font-weight: 800; letter-spacing: -.5px; }
+.legal__updated { color: var(--ink-muted); margin: 10px 0 32px; font-size: 14px; }
+.legal h2 { font-size: 22px; margin: 36px 0 10px; }
+.legal h3 { font-size: 17px; margin: 22px 0 6px; }
+.legal p, .legal li { color: #3b2d23; line-height: 1.7; }
+.legal ul, .legal ol { padding-left: 22px; display: grid; gap: 6px; }
+.legal a { color: var(--sun-deep); }
+.footer a { color: var(--daylight); }
